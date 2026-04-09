@@ -1,0 +1,243 @@
+{
+  "args": {
+    "group": "D",
+    "fold": 1,
+    "data_dir": "data/processed",
+    "output_dir": "results",
+    "batch_size": 64,
+    "max_seq_length": 512,
+    "num_workers": 0,
+    "device": null,
+    "seed": 42,
+    "model_name": "zhihan1996/DNABERT-2-117M",
+    "warmup_epochs": 1,
+    "warmup_lr": 0.002,
+    "warmup_wd": 0.0001,
+    "finetune_epochs": 10,
+    "backbone_lr": 1e-05,
+    "backbone_wd": 1e-05,
+    "task_lr": 0.0001,
+    "task_wd": 0.0001,
+    "patience": 3
+  },
+  "phases": [
+    {
+      "phase": "warmup",
+      "epoch": 1,
+      "train_loss": 0.4418408857991766,
+      "train_metrics": {
+        "sensitivity": 77.64520275797592,
+        "specificity": 83.05714619609677,
+        "accuracy": 80.35117447703635,
+        "tp": 66441,
+        "tn": 71072,
+        "fp": 14498,
+        "fn": 19129
+      },
+      "val_loss": 0.35727988234791935,
+      "val_metrics": {
+        "sensitivity": 84.04036862666533,
+        "specificity": 87.52633595096725,
+        "accuracy": 84.76297296224243,
+        "tp": 67118,
+        "tn": 18279,
+        "fp": 2605,
+        "fn": 12746
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 1,
+      "train_loss": 0.30126513974248936,
+      "train_metrics": {
+        "sensitivity": 86.23816758209652,
+        "specificity": 89.39231038915509,
+        "accuracy": 87.8152389856258,
+        "tp": 73794,
+        "tn": 76493,
+        "fp": 9077,
+        "fn": 11776
+      },
+      "val_loss": 0.32042767118905013,
+      "val_metrics": {
+        "sensitivity": 87.03921666833617,
+        "specificity": 91.26125263359509,
+        "accuracy": 87.91440028586175,
+        "tp": 69513,
+        "tn": 19059,
+        "fp": 1825,
+        "fn": 10351
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 2,
+      "train_loss": 0.22022865807548977,
+      "train_metrics": {
+        "sensitivity": 90.66144676872736,
+        "specificity": 92.48919013673016,
+        "accuracy": 91.57531845272877,
+        "tp": 77579,
+        "tn": 79143,
+        "fp": 6427,
+        "fn": 7991
+      },
+      "val_loss": 0.2619511978263327,
+      "val_metrics": {
+        "sensitivity": 91.40163277571872,
+        "specificity": 91.33307795441486,
+        "accuracy": 91.3874220828205,
+        "tp": 72997,
+        "tn": 19074,
+        "fp": 1810,
+        "fn": 6867
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 3,
+      "train_loss": 0.12810600183758764,
+      "train_metrics": {
+        "sensitivity": 94.75867710646254,
+        "specificity": 95.95769545401426,
+        "accuracy": 95.3581862802384,
+        "tp": 81085,
+        "tn": 82111,
+        "fp": 3459,
+        "fn": 4485
+      },
+      "val_loss": 0.2952830163937907,
+      "val_metrics": {
+        "sensitivity": 91.02348993288591,
+        "specificity": 93.13349932963034,
+        "accuracy": 91.46087267241036,
+        "tp": 72695,
+        "tn": 19450,
+        "fp": 1434,
+        "fn": 7169
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 4,
+      "train_loss": 0.0780708498719057,
+      "train_metrics": {
+        "sensitivity": 96.7780764286549,
+        "specificity": 97.71999532546454,
+        "accuracy": 97.24903587705973,
+        "tp": 82813,
+        "tn": 83619,
+        "fp": 1951,
+        "fn": 2757
+      },
+      "val_loss": 0.38125419173804254,
+      "val_metrics": {
+        "sensitivity": 89.5998196934789,
+        "specificity": 94.52691055353381,
+        "accuracy": 90.62115376980188,
+        "tp": 71558,
+        "tn": 19741,
+        "fp": 1143,
+        "fn": 8306
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 5,
+      "train_loss": 0.051979642910727195,
+      "train_metrics": {
+        "sensitivity": 97.92100035059016,
+        "specificity": 98.56842351291341,
+        "accuracy": 98.24471193175178,
+        "tp": 83791,
+        "tn": 84345,
+        "fp": 1225,
+        "fn": 1779
+      },
+      "val_loss": 0.3342733033140158,
+      "val_metrics": {
+        "sensitivity": 93.36371832114595,
+        "specificity": 92.31469067228501,
+        "accuracy": 93.14626593083733,
+        "tp": 74564,
+        "tn": 19279,
+        "fp": 1605,
+        "fn": 5300
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 6,
+      "train_loss": 0.033941534646025215,
+      "train_metrics": {
+        "sensitivity": 98.64321608040201,
+        "specificity": 99.04405749678625,
+        "accuracy": 98.84363678859414,
+        "tp": 84409,
+        "tn": 84752,
+        "fp": 818,
+        "fn": 1161
+      },
+      "val_loss": 0.5599696913871408,
+      "val_metrics": {
+        "sensitivity": 89.18912150656115,
+        "specificity": 95.5516184638958,
+        "accuracy": 90.50800015881208,
+        "tp": 71230,
+        "tn": 19955,
+        "fp": 929,
+        "fn": 8634
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 7,
+      "train_loss": 0.022737183229686698,
+      "train_metrics": {
+        "sensitivity": 99.04288886291924,
+        "specificity": 99.3712749795489,
+        "accuracy": 99.20708192123408,
+        "tp": 84751,
+        "tn": 85032,
+        "fp": 538,
+        "fn": 819
+      },
+      "val_loss": 0.5299844718665239,
+      "val_metrics": {
+        "sensitivity": 92.47470700190323,
+        "specificity": 94.0432867266807,
+        "accuracy": 92.79985706912296,
+        "tp": 73854,
+        "tn": 19640,
+        "fp": 1244,
+        "fn": 6010
+      }
+    },
+    {
+      "phase": "finetune",
+      "epoch": 8,
+      "train_loss": 0.01566230370380673,
+      "train_metrics": {
+        "sensitivity": 99.34439640060769,
+        "specificity": 99.60266448521679,
+        "accuracy": 99.47353044291224,
+        "tp": 85009,
+        "tn": 85230,
+        "fp": 340,
+        "fn": 561
+      },
+      "val_loss": 0.5664830223088532,
+      "val_metrics": {
+        "sensitivity": 92.07527797255334,
+        "specificity": 94.00976824363148,
+        "accuracy": 92.47627744471355,
+        "tp": 73535,
+        "tn": 19633,
+        "fp": 1251,
+        "fn": 6329
+      }
+    }
+  ],
+  "best_epoch": 5,
+  "best_val_acc": 93.14626593083733
+}

@@ -1,0 +1,22 @@
+# Large data and model files
+phabert_cnn/results/checkpoints/
+phabert_cnn/data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
