@@ -106,10 +106,14 @@ class PhaBERTCNN(nn.Module):
             dnabert2_model_name,
             trust_remote_code=True,
         )
-        self.backbone = model_cls.from_pretrained(
-            dnabert2_model_name,
-            config=config,
-        )
+        # Force CPU init to avoid `meta` device mismatch in DNABERT-2's
+        # rebuild_alibi_tensor (transformers >=4.40 inits on meta by default).
+        with torch.device("cpu"):
+            self.backbone = model_cls.from_pretrained(
+                dnabert2_model_name,
+                config=config,
+                low_cpu_mem_usage=False,
+            )
         
         self.tokenizer = AutoTokenizer.from_pretrained(
             dnabert2_model_name,
