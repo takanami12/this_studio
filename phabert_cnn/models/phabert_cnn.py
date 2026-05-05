@@ -180,16 +180,17 @@ class PhaBERTCNN(nn.Module):
             )
 
         # The DNABERT-2 self-attention layer hard-imports a Triton flash
-        # kernel that asserts CUDA tensors.  When running on CPU we disable
-        # it so the layer falls back to the pure-PyTorch attention branch
+        # kernel. The shipped flash_attn_triton.py uses `tl.dot(..., trans_b=True)`,
+        # which was removed in Triton >= 3.x — kernel compilation crashes on
+        # any modern CUDA stack. Disable unconditionally so the layer falls
+        # back to the pure-PyTorch attention branch
         # (see `bert_layers.BertUnpadSelfAttention.forward`, line ~161).
-        if not torch.cuda.is_available():
-            import sys
-            backbone_module = sys.modules.get(model_cls.__module__)
-            if backbone_module is not None and hasattr(
-                backbone_module, "flash_attn_qkvpacked_func"
-            ):
-                backbone_module.flash_attn_qkvpacked_func = None
+        import sys
+        backbone_module = sys.modules.get(model_cls.__module__)
+        if backbone_module is not None and hasattr(
+            backbone_module, "flash_attn_qkvpacked_func"
+        ):
+            backbone_module.flash_attn_qkvpacked_func = None
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             dnabert2_model_name,
