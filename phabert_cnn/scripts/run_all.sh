@@ -16,12 +16,17 @@ set -e  # Exit on error
 
 SKIP_PREPARE=false
 GPU_ID=0
+COMPILE_FLAG=""
 
 # Parse arguments
 for arg in "$@"; do
     case $arg in
         --skip_prepare)
             SKIP_PREPARE=true
+            shift
+            ;;
+        --no_compile)
+            COMPILE_FLAG="--no_compile"
             shift
             ;;
         --gpu=*)
@@ -62,7 +67,7 @@ echo "========================================================"
 N_FOLDS=5
 
 for group in A; do
-    for ((fold=4; fold<N_FOLDS; fold++)); do
+    for ((fold=2; fold<N_FOLDS; fold++)); do
         echo ""
         echo "--------------------------------------------------------"
         echo "Training: Group $group, Fold $fold"
@@ -76,7 +81,9 @@ for group in A; do
             --max_seq_length 512 \
             --warmup_epochs 1 \
             --finetune_epochs 10 \
-            --patience 3
+            --patience 3 \
+            --class_balance undersample \
+            $COMPILE_FLAG
         
         echo "Completed: Group $group, Fold $fold"
     done

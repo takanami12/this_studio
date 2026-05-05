@@ -44,6 +44,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.phabert_cnn import PhaBERTCNN
 from utils.dataset import create_dataloaders, apply_undersampling
 from utils.metrics import compute_metrics, print_metrics
+from utils.bio_features import BIO_FEATURE_DIM
 
 
 def parse_args():
@@ -65,7 +66,20 @@ def parse_args():
     
     # Model args
     parser.add_argument("--model_name", type=str, default="zhihan1996/DNABERT-2-117M")
-    
+    parser.add_argument("--use_bio_features", dest="use_bio_features",
+                        action="store_true", default=True,
+                        help="Enable hand-crafted bio-feature MLP branch (default: enabled).")
+    parser.add_argument("--no_bio_features", dest="use_bio_features",
+                        action="store_false",
+                        help="Disable bio-feature branch (paper-baseline ablation).")
+    parser.add_argument("--compile", dest="compile",
+                        action="store_true", default=True,
+                        help="Bật torch.compile cho Phase 2 (mặc định: bật).")
+    parser.add_argument("--no_compile", dest="compile",
+                        action="store_false",
+                        help="Tắt torch.compile (tránh dynamo graph-break warnings "
+                             "từ DNABERT-2 bert_padding.unpad_input).")
+
     # Phase 1 args
     parser.add_argument("--warmup_epochs", type=int, default=1)
     parser.add_argument("--warmup_lr", type=float, default=2e-3)
@@ -78,6 +92,13 @@ def parse_args():
     parser.add_argument("--task_lr", type=float, default=1e-4)
     parser.add_argument("--task_wd", type=float, default=1e-4)
     parser.add_argument("--patience", type=int, default=3)
+
+    # Class imbalance handling
+    parser.add_argument("--class_balance", type=str, default="weight",
+                        choices=["weight", "undersample", "none"],
+                        help="Strategy for class imbalance: 'weight' (default, "
+                             "no data loss), 'undersample' (random under-sample "
+                             "majority), 'none'.")
     
     return parser.parse_args()
 
@@ -99,17 +120,18 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, criterion, device, 
     all_preds = []
     all_labels = []
     use_amp = scaler is not None
-    
+
     pbar = tqdm(dataloader, desc="Training", leave=False)
     for batch in pbar:
         input_ids = batch['input_ids'].to(device, non_blocking=True)
         attention_mask = batch['attention_mask'].to(device, non_blocking=True)
+        bio_features = batch['bio_features'].to(device, non_blocking=True)
         labels = batch['label'].to(device, non_blocking=True)
-        
+
         optimizer.zero_grad(set_to_none=True)
-        
+
         with torch.amp.autocast('cuda', enabled=use_amp):
-            logits = model(input_ids, attention_mask)
+            logits = model(input_ids, attention_mask, bio_features)
             loss = criterion(logits, labels)
         
         if use_amp:
@@ -150,10 +172,11 @@ def evaluate(model, dataloader, criterion, device, use_amp=False):
     for batch in tqdm(dataloader, desc="Evaluating", leave=False):
         input_ids = batch['input_ids'].to(device, non_blocking=True)
         attention_mask = batch['attention_mask'].to(device, non_blocking=True)
+        bio_features = batch['bio_features'].to(device, non_blocking=True)
         labels = batch['label'].to(device, non_blocking=True)
-        
+
         with torch.amp.autocast('cuda', enabled=use_amp):
-            logits = model(input_ids, attention_mask)
+            logits = model(input_ids, attention_mask, bio_features)
             loss = criterion(logits, labels)
         
         total_loss += loss.item() * input_ids.size(0)
@@ -206,7 +229,7 @@ def main():
     print(f"\nLoading DNABERT-2 tokenizer from: {args.model_name}")
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, trust_remote_code=True)
     
-    train_loader, val_loader = create_dataloaders(
+    train_loader, val_loader, bio_normalizer = create_dataloaders(
         train_seqs=train_data['sequences'],
         train_labels=train_data['labels'],
         val_seqs=val_data['sequences'],
@@ -215,20 +238,24 @@ def main():
         batch_size=args.batch_size,
         max_length=args.max_seq_length,
         num_workers=args.num_workers,
-        use_undersampling=True,
+        use_undersampling=(args.class_balance == "undersample"),
         random_state=args.seed,
+        cache_dir=fold_dir,
     )
-    
+
     # ================================================================
     # Initialize model
     # ================================================================
     print("\nInitializing PhaBERT-CNN model...")
+    bio_dim = BIO_FEATURE_DIM if args.use_bio_features else 0
+    print(f"  use_bio_features = {args.use_bio_features} (bio_dim={bio_dim})")
     model = PhaBERTCNN(
         dnabert2_model_name=args.model_name,
         embedding_dim=768,
         cnn_kernel_sizes=[3, 5, 7],
         attention_hidden_dim=64,
         attention_dropout=0.1,
+        bio_feature_dim=bio_dim,
         classifier_hidden_dim=256,
         classifier_dropout=0.1,
         num_classes=2,
@@ -241,7 +268,24 @@ def main():
     print(f"  Total parameters: {total_params:,}")
     print(f"  Trainable parameters: {trainable_params:,}")
     
-    criterion = nn.CrossEntropyLoss()
+    if args.class_balance == "weight":
+        labels_arr = np.asarray(train_data['labels'])
+        n_total = labels_arr.size
+        n_pos = int((labels_arr == 1).sum())
+        n_neg = int((labels_arr == 0).sum())
+        # sklearn 'balanced' formula: n_total / (n_classes * n_per_class)
+        weight = torch.tensor(
+            [n_total / (2 * n_neg), n_total / (2 * n_pos)],
+            dtype=torch.float32,
+            device=device,
+        )
+        criterion = nn.CrossEntropyLoss(weight=weight)
+        print(f"  Class weights (weight strategy): "
+              f"temperate={weight[0].item():.3f}, virulent={weight[1].item():.3f}")
+    else:
+        criterion = nn.CrossEntropyLoss()
+        print(f"  Class balance strategy: {args.class_balance} (uniform CE loss)")
+
     # AMP scaler for mixed precision training
     use_amp = device.type == 'cuda'
     scaler = torch.amp.GradScaler('cuda') if use_amp else None
@@ -317,7 +361,7 @@ def main():
         print(f"  [DEBUG] Warmup checkpoint saved to: {warmup_skip_path}")
 
     # Compile AFTER Phase 1 (cả cache hit lẫn cache miss) để Phase 2 luôn được compile
-    if hasattr(torch, 'compile'):
+    if args.compile and hasattr(torch, 'compile'):
         print("  Compiling model with torch.compile...")
         model = torch.compile(model)
     
@@ -395,6 +439,8 @@ def main():
                 'model_state_dict': model.state_dict(),
                 'val_metrics': val_metrics,
                 'val_loss': val_loss,
+                'bio_normalizer': bio_normalizer,
+                'bio_feature_dim': bio_dim,
             }, checkpoint_dir / 'best_model.pt')
             print(f"  >> New best model saved (val_acc={best_val_acc:.2f}%)")
         else:

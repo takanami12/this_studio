@@ -57,10 +57,11 @@ def evaluate_model(model, dataloader, device):
     for batch in tqdm(dataloader, desc="Evaluating", leave=False):
         input_ids = batch['input_ids'].to(device, non_blocking=True)
         attention_mask = batch['attention_mask'].to(device, non_blocking=True)
+        bio_features = batch['bio_features'].to(device, non_blocking=True)
         labels = batch['label']
 
         with torch.amp.autocast('cuda', enabled=use_amp):
-            logits = model(input_ids, attention_mask)
+            logits = model(input_ids, attention_mask, bio_features)
         probs = torch.softmax(logits.float(), dim=-1)
         preds = torch.argmax(logits, dim=-1)
 
@@ -109,10 +110,16 @@ def main():
         
         print(f"  Loaded {len(eval_data['sequences'])} samples")
         
-        # Create dataset and dataloader
+        # Load model + bio-feature normaliser from checkpoint
+        checkpoint = torch.load(ckpt_path, map_location=device)
+        bio_normalizer = checkpoint.get('bio_normalizer')
+        bio_dim = checkpoint.get('bio_feature_dim', 0)
+
+        # Create dataset and dataloader (apply same normaliser used in training)
         dataset = PhageContigDataset(
             eval_data['sequences'], eval_data['labels'],
-            tokenizer, args.max_seq_length
+            tokenizer, args.max_seq_length,
+            bio_normalizer=bio_normalizer,
         )
         dataloader = DataLoader(
             dataset, batch_size=args.batch_size,
@@ -120,10 +127,11 @@ def main():
             pin_memory=True,
             prefetch_factor=4 if args.num_workers > 0 else None,
         )
-        
-        # Load model
-        model = PhaBERTCNN(dnabert2_model_name=args.model_name)
-        checkpoint = torch.load(ckpt_path, map_location=device)
+
+        model = PhaBERTCNN(
+            dnabert2_model_name=args.model_name,
+            bio_feature_dim=bio_dim,
+        )
         model.load_state_dict(checkpoint['model_state_dict'])
         model = model.to(device)
         
