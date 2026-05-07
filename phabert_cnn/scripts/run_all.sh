@@ -53,7 +53,7 @@ if [ "$SKIP_PREPARE" = false ]; then
     echo "========================================================"
     echo "Step 1: Preparing data..."
     echo "========================================================"
-    python scripts/prepare_data.py --skip_download
+    python scripts/prepare_data.py
 fi
 
 # ============================================================
