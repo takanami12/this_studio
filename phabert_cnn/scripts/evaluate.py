@@ -111,7 +111,7 @@ def main():
         print(f"  Loaded {len(eval_data['sequences'])} samples")
         
         # Load model + bio-feature normaliser from checkpoint
-        checkpoint = torch.load(ckpt_path, map_location=device)
+        checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
         bio_normalizer = checkpoint.get('bio_normalizer')
         bio_dim = checkpoint.get('bio_feature_dim', 0)
 
@@ -132,7 +132,10 @@ def main():
             dnabert2_model_name=args.model_name,
             bio_feature_dim=bio_dim,
         )
-        model.load_state_dict(checkpoint['model_state_dict'])
+        state_dict = checkpoint['model_state_dict']
+        if any(k.startswith('_orig_mod.') for k in state_dict):
+            state_dict = {k.removeprefix('_orig_mod.'): v for k, v in state_dict.items()}
+        model.load_state_dict(state_dict)
         model = model.to(device)
         
         # Evaluate

@@ -106,18 +106,3 @@ for group in A; do
     python scripts/evaluate.py --group $group
 done
 
-# ============================================================
-# Summary
-# ============================================================
-echo ""
-echo "========================================================"
-echo "Experiment Complete!"
-echo "========================================================"
-echo ""
-echo "Results saved in results/metrics/"
-echo ""
-echo "Paper reference results:"
-echo "  Group A (100-400bp):  sn=82.00%, sp=80.15%, acc=81.59%"
-echo "  Group B (400-800bp):  sn=89.91%, sp=80.44%, acc=87.91%"
-echo "  Group C (800-1200bp): sn=91.12%, sp=85.93%, acc=90.01%"
-echo "  Group D (1200-1800bp): sn=88.47%, sp=90.95%, acc=90.69%"
